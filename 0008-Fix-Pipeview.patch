@@ -1,0 +1,58 @@
+From 8b6e3eee4d0bb1d2e0a1abc913ec812fc6ae6966 Mon Sep 17 00:00:00 2001
+From: Christoph Gerum <christoph@gerum.de>
+Date: Sun, 28 Nov 2010 15:07:41 +0100
+Subject: [PATCH] Fix Pipeview
+
+---
+ pipeview.pl |   11 +++++++++--
+ 1 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/pipeview.pl b/pipeview.pl
+index 755e52a..605afa7 100755
+--- a/pipeview.pl
++++ b/pipeview.pl
+@@ -133,6 +133,8 @@ while (<TRC_FILE>)
+ 	    # partition by instruction stage
+ 	    $stage = $insts_stage{$pseq};
+ 
++	    #print "Inst: $pseq\n";
++
+ 	    # decode the instruction events
+ 	    $events = hex($insts_events{$pseq});
+ 	    $evstr = "";
+@@ -179,7 +181,7 @@ while (<TRC_FILE>)
+ 	      }
+ 	    else
+ 	      {
+-		print "warning: unknown stage\n";
++		print "warning: unknown stage\n", $stage;
+ 	      }
+ 	  }
+ 
+@@ -279,10 +281,11 @@ while (<TRC_FILE>)
+ 	print "@ $cycle\n";
+       }
+     # instruction transition to a new stage
+-    elsif (/^\*\s+(\d+)\s+(\w+)\s+(0x[0-9a-fA-F]+)\n?$/)
++    elsif (/^\*\s+(\d+)\s+(\w+)\s+(0x[0-9a-fA-F]+).*\n?$/)
+       {
+ 	if ($insts{$1})
+ 	  {
++	    #  print "Transition $0 $1 $2 $3 $4";
+ 	    # this instruction is live...
+ 	    $insts_stage{$1} = $2;
+ 	    $insts_events{$1} = $3;
+@@ -293,6 +296,10 @@ while (<TRC_FILE>)
+ 	    # print STDERR "inst `$1' is dead...\n";
+ 	  }
+       }
++    elsif (/(.*NTsim_num_insn.*)|(.*NTsim_cycle.*)|(.*sim_IPC.*)/)
++    {
++	
++    }
+     else
+       {
+ 	print "warning: could not parse line: `$_'\n";
+-- 
+1.6.0.4
+

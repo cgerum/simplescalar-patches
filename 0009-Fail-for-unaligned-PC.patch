@@ -1,0 +1,184 @@
+From efd31ffe5ac0838f10b1a6a6579fa32e0b391e77 Mon Sep 17 00:00:00 2001
+From: Christoph Gerum <christoph@gerum.de>
+Date: Sun, 28 Nov 2010 15:08:09 +0100
+Subject: [PATCH] Fail for unaligned PC
+
+---
+ machine.c      |    4 ++++
+ machine.def    |   28 ++++++++++++++++++++++------
+ sim-outorder.c |    5 +++++
+ 3 files changed, 31 insertions(+), 6 deletions(-)
+
+diff --git a/machine.c b/machine.c
+index 8ee500e..f907aff 100644
+--- a/machine.c
++++ b/machine.c
+@@ -910,6 +910,8 @@ md_get_flow(enum md_opcode op, md_inst_t inst,
+       {
+ 	int i, rd = 0, rn = (RN);
+ 
++	//printf("ldm\n");
++
+ 	flow[nuops].op = AGENI_U;
+ 	flow[nuops++].inst = AGENI(cond, MD_REG_TMP1, rn, /* mov */0);
+ #if 0
+@@ -1034,6 +1036,8 @@ md_get_flow(enum md_opcode op, md_inst_t inst,
+       {
+ 	int i, rd = 0, rn = (RN);
+ 
++	//printf("ldm_w\n");
++
+ 	flow[nuops].op = AGENI_U;
+ 	flow[nuops++].inst = AGENI(cond, MD_REG_TMP1, rn, /* mov */0);
+ 
+diff --git a/machine.def b/machine.def
+index f52c8b9..337ce25 100644
+--- a/machine.def
++++ b/machine.def
+@@ -352,6 +352,7 @@ DEFINST(BR,			0x0a,
+ 									\
+     if (COND_VALID(PSR))						\
+       {									\
++	/*printf("bl %x\n", CPC);*/					\
+ 	SET_NPC(CPC + BOFS  + 8);					\
+ 	SET_GPR(14, CPC + 4);						\
+       }									\
+@@ -1600,11 +1601,11 @@ DEFINST(MLAS,			0x03,
+       {									\
+         qword_t _result;                                                \
+                                                                         \
+-    if ((RM) == (RD) || (RM) == (RN) || (RN) == (RD))		        \
++	if ((RM) == (RD) || (RM) == (RN) || (RN) == (RD))		\
+ 	  {								\
+-	    SET_GPR(RD, 0);						\
++	    /*SET_GPR(RD, 0);*/						\
+ 	    /* FIXME: should this be "md_fault_dsteqop1"? */		\
+-	    DECLARE_FAULT(md_fault_invalid);				\
++	    /*DECLARE_FAULT(md_fault_invalid);*/			\
+ 	  }								\
+ 	if ((RD) == MD_REG_PC || (RN) == MD_REG_PC)			\
+ 	  {								\
+@@ -1722,7 +1723,7 @@ DEFINST(UMLALS,			0x0b,
+ 	  {								\
+ 	    SET_GPR(RD, 0);						\
+ 	    /* FIXME: should this be "md_fault_dsteqop1"? */		\
+-	    DECLARE_FAULT(md_fault_invalid);				\
++	    /*DECLARE_FAULT(md_fault_invalid); */			\
+ 	  }								\
+ 	if ((RD) == MD_REG_PC || (RN) == MD_REG_PC)			\
+ 	  {								\
+@@ -4040,6 +4041,7 @@ DEFINST(STM,			0x00,
+ 
+ #define LDM_L_IMPL							\
+   {									\
++    printf("ldm_l\n");							\
+     if (COND_VALID(PSR))						\
+       {									\
+ 	int _i;								\
+@@ -4101,6 +4103,7 @@ DEFINST(STM_W,			0x02,
+ 
+ #define LDM_WL_IMPL							\
+   {									\
++    printf("ldm_wl\n");							\
+     if (COND_VALID(PSR))						\
+       {									\
+ 	int _i;								\
+@@ -4167,6 +4170,7 @@ DEFINST(LDM_SWL,			0x07,
+ 
+ #define STM_U_IMPL							\
+   {									\
++    printf("stm_u\n");							\
+     if (COND_VALID(PSR))						\
+       {									\
+ 	int _i;								\
+@@ -4194,6 +4198,7 @@ DEFINST(STM_U,			0x08,
+ 
+ #define LDM_UL_IMPL							\
+   {									\
++    printf("ldm_ul\n");							\
+     if (COND_VALID(PSR))						\
+       {									\
+ 	int _i;								\
+@@ -4255,6 +4260,7 @@ DEFINST(STM_UW,			0x0a,
+ 
+ #define LDM_UWL_IMPL							\
+   {									\
++    printf("ldm_uwl @ %x\n", CPC);					\
+     if (COND_VALID(PSR))						\
+       {									\
+ 	int _i;								\
+@@ -4292,7 +4298,10 @@ DEFINST(STM_US,			0x0c,
+ 	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+ 
+ /* LDM_USL, 0x0d, TODO... */
+-#define LDM_USL_IMPL
++#define LDM_USL_IMPL				\
++  {						\
++    printf("ldm_usl\n");			\
++  }
+ DEFINST(LDM_USL,			0x0d,
+ 	"stm%c%a",		"%n,%R",
+ 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
+@@ -4309,7 +4318,10 @@ DEFINST(STM_USW,			0x0e,
+ 
+ /* LDM_USWL, 0x0f, TODO... */
+ 
+-#define LDM_USWL_IMPL
++#define LDM_USWL_IMPL				\
++  {						\
++    printf("ldm_uswl\n");			\
++  }
+ DEFINST(LDM_USWL,			0x0f,
+ 	"stm%c%a",		"%n,%R",
+ 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
+@@ -4346,6 +4358,7 @@ DEFINST(STM_P,			0x00,
+ 
+ #define LDM_PL_IMPL							\
+   {									\
++    printf("ldm_pl\n");							\
+     if (COND_VALID(PSR))						\
+       {									\
+ 	int _i;								\
+@@ -4407,6 +4420,7 @@ DEFINST(STM_PW,			0x02,
+ 
+ #define LDM_PWL_IMPL							\
+   {									\
++    printf("ldm_pwl\n");						\
+     if (COND_VALID(PSR))						\
+       {									\
+ 	int _i;								\
+@@ -4499,6 +4513,7 @@ DEFINST(STM_PU,			0x08,
+ 
+ #define LDM_PUL_IMPL							\
+   {									\
++    printf("ldm_pul\n");						\
+     if (COND_VALID(PSR))						\
+       {									\
+ 	int _i;								\
+@@ -4560,6 +4575,7 @@ DEFINST(STM_PUW,       		0x0a,
+ 
+ #define LDM_PUWL_IMPL							\
+   {									\
++    printf("ldm_puwl\n");						\
+     if (COND_VALID(PSR))						\
+       {									\
+ 	int _i;								\
+diff --git a/sim-outorder.c b/sim-outorder.c
+index 7550940..79f8917 100644
+--- a/sim-outorder.c
++++ b/sim-outorder.c
+@@ -4278,6 +4278,11 @@ ruu_dispatch(void)
+ 	    inst = cond | rm | 0x01a0f000;
+ 	  }
+ 
++	  if((regs.regs_PC % 4) != 0){
++	    printf("unaligned pc: %x\n", regs.regs_PC);
++	    if(regs.regs_PC > 25) exit(-1);
++	  }
++
+ 	  /* decode the instruction */
+ 	  MD_SET_OPCODE(op, inst);
+  	  if (!spec_mode && op == NA)
+-- 
+1.6.0.4
+
