@@ -1,0 +1,118 @@
+From 93afe53c1ac76802578ec1c203b08fff445c146e Mon Sep 17 00:00:00 2001
+From: Christoph Gerum <christoph@gerum.de>
+Date: Sun, 28 Nov 2010 14:55:31 +0100
+Subject: [PATCH] Simplescalar rtos support 0.1a patch
+
+From: http://www.jwhitham.org.uk/simplescalar/
+---
+ sim-outorder.c |   36 +++++++++++++++++++++++++++++++-----
+ syscall.c      |    3 +++
+ 2 files changed, 34 insertions(+), 5 deletions(-)
+
+diff --git a/sim-outorder.c b/sim-outorder.c
+index 31da985..54faf92 100644
+--- a/sim-outorder.c
++++ b/sim-outorder.c
+@@ -509,12 +509,13 @@ static counter_t sim_total_branches = 0;
+ 
+ /* cycle counter */
+ tick_t sim_cycle = 0;
++tick_t sim_cycles_in_idle_task = 0;
+ tick_t timer_next_interrupt_at = 0;
+ tick_t timer_period = 0;
+ int timer_return_from_interrupt_address = 0;
++int sim_in_idle_task = 0;
+ int timer_do_return_from_interrupt = 0;
+-enum { PENDING_FLUSH , 
+-    HANDLING , NORMAL } timer_int_state ;
++enum { PENDING_FLUSH , HANDLING , NORMAL } timer_int_state ;
+ 
+ static void do_return_from_interrupt ( bool_t swap_regs ) ;
+ static void do_msr ( int reg , int pc , int new_value , md_inst_t inst ) ;
+@@ -1500,6 +1501,9 @@ sim_reg_stats(struct stat_sdb_t *sdb)   /* stats database */
+   stat_reg_counter(sdb, "sim_cycle",
+ 		   "total simulation time in cycles",
+ 		   &sim_cycle, /* initial value */0, /* format */NULL);
++  stat_reg_counter(sdb, "sim_cycles_in_idle_task",
++		   "total simulation time spent in idle task",
++		   &sim_cycles_in_idle_task, /* initial value */0, /* format */NULL);
+   stat_reg_formula(sdb, "sim_IPC",
+ 		   "instructions per cycle",
+ 		   "sim_num_insn / sim_cycle", /* format */NULL);
+@@ -5375,6 +5379,7 @@ timer_int_state = NORMAL ;
+ 
+         allow_dispatch = ( timer_int_state != PENDING_FLUSH )
+                     || in_flow ;
++        sim_in_idle_task = 0 ;
+ 
+       /* RUU/LSQ sanity checks */
+ #if 0
+@@ -5555,20 +5560,41 @@ timer_int_state = NORMAL ;
+     switch ( timer_int_state )
+     {
+         case NORMAL :
++                if ( sim_in_idle_task )
++                {
++                    tick_t cycle_warp ;
++
++                    /* Stay in idle task until we get a timer interrupt.
++                     * Of course, we might never get one... Check for that */
++                    if (( timer_next_interrupt_at <= 0 ) /* timer off */
++                    || (( PSR & 0x80 ) != 0 )) /* ints disabled */
++                    {
++                        panic ( "entered idle task without enabling "
++                            "interrupts and/or timer" ) ;
++                    }
++                    cycle_warp = timer_next_interrupt_at - sim_cycle ;
++                    if ( cycle_warp > 0 )
++                    {
++                        sim_cycles_in_idle_task += cycle_warp ;
++                        sim_cycle += cycle_warp ;
++                    }
++                }
+                 if (( timer_next_interrupt_at > 0 )
+                 && (( PSR & 0x80 ) == 0 ) 
+                                 /* interrupts enabled */
+                 && ( sim_cycle >= timer_next_interrupt_at ))
+                 {
++#ifdef JACK_DEBUGGING
+                     double seconds = (( (double) ((long long) sim_cycle )) /
+                         ( (double) MD_CLOCK_CYCLES_PER_MICROSECOND *
+                             1000000.0 )) ;
++
++                    fprintf ( stderr , "tick - %lld - %1.4f seconds\n" , 
++                            ((long long) sim_cycle ) , seconds ) ;
++#endif
+                     timer_int_state = PENDING_FLUSH ;
+                     timer_do_return_from_interrupt = 0 ;
+                     timer_next_interrupt_at = sim_cycle + timer_period ;
+-                    fprintf ( stderr , "tick - %lld - %1.4f seconds\n" , 
+-                            ((long long) sim_cycle ) , seconds ) ;
+-		    /* verbose = 1 ; */
+                 }
+                 break ;
+         default :
+diff --git a/syscall.c b/syscall.c
+index fb4a908..0609c8f 100644
+--- a/syscall.c
++++ b/syscall.c
+@@ -1009,6 +1009,7 @@ struct linux_tms
+ extern tick_t timer_next_interrupt_at ;
+ extern tick_t timer_period ;
+ extern tick_t sim_cycle ;
++extern int sim_in_idle_task ;
+ 
+ /* ARM SYSTEM CALL CONVENTIONS
+ 
+@@ -2095,6 +2096,8 @@ sys_syscall(struct regs_t *regs,	/* registers to access */
+                                 regs -> regs_R [ MD_REG_R0 ] ;
+                         timer_next_interrupt_at = sim_cycle + timer_period ;
+                         break ;
++        case 0x99991 :  sim_in_idle_task = 1 ;
++                        break ;
+ 
+ 
+ #if XXX
+-- 
+1.6.0.4
+

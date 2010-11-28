@@ -1,0 +1,42 @@
+From 2b1df61a0c7c519ff73000867048775307dae2db Mon Sep 17 00:00:00 2001
+From: Christoph Gerum <christoph@gerum.de>
+Date: Sun, 28 Nov 2010 14:44:49 +0100
+Subject: [PATCH] Unified reference to errno.
+
+From: http://www.jwhitham.org.uk/simplescalar/patches/
+---
+ eval.c  |    2 --
+ range.c |    2 --
+ 2 files changed, 0 insertions(+), 4 deletions(-)
+
+diff --git a/eval.c b/eval.c
+index 39f50e6..b0d56ff 100644
+--- a/eval.c
++++ b/eval.c
+@@ -80,9 +80,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <ctype.h>
+-#if defined(__CYGWIN32__)
+ #include <errno.h>
+-#endif
+ 
+ #include "host.h"
+ #include "misc.h"
+diff --git a/range.c b/range.c
+index 0690b9e..850a6e5 100644
+--- a/range.c
++++ b/range.c
+@@ -78,9 +78,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#if defined(__CYGWIN32__)
+ #include <errno.h>
+-#endif
+ 
+ #include "host.h"
+ #include "misc.h"
+-- 
+1.6.0.4
+
