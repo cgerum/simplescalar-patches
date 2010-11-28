@@ -1,0 +1,163 @@
+From 87ec8d536177f986ca02b45fae3fb1e2cad7c5de Mon Sep 17 00:00:00 2001
+From: Christoph Gerum <christoph@gerum.de>
+Date: Sun, 28 Nov 2010 15:19:30 +0100
+Subject: [PATCH] Fix compilation with recent gcc versions
+
+---
+ machine.h      |   12 ++++++------
+ sim-outorder.c |   42 +++++++++++++++++++++---------------------
+ 2 files changed, 27 insertions(+), 27 deletions(-)
+
+diff --git a/machine.h b/machine.h
+index 3858784..21cacaa 100644
+--- a/machine.h
++++ b/machine.h
+@@ -357,12 +357,6 @@ extern md_inst_t MD_NOP_INST;
+     incr/decr operation specifiers */
+ #define MD_MAX_MASK		2048
+ 
+-/* internal decoder state */
+-extern enum md_opcode md_mask2op[];
+-extern unsigned int md_opoffset[];
+-extern unsigned int md_opmask[];
+-extern unsigned int md_opshift[];
+-
+ /* global opcode names, these are returned by the decoder (MD_OP_ENUM()) */
+ enum md_opcode {
+   OP_NA = 0,	/* NA */
+@@ -374,6 +368,12 @@ enum md_opcode {
+   OP_MAX	/* number of opcodes + NA */
+ };
+ 
++/* internal decoder state */
++extern enum md_opcode md_mask2op[];
++extern unsigned int md_opoffset[];
++extern unsigned int md_opmask[];
++extern unsigned int md_opshift[];
++
+ /* enum md_opcode -> description string */
+ #define MD_OP_NAME(OP)		(md_op2name[OP])
+ extern char *md_op2name[];
+diff --git a/sim-outorder.c b/sim-outorder.c
+index 79f8917..7bd3e48 100644
+--- a/sim-outorder.c
++++ b/sim-outorder.c
+@@ -263,68 +263,68 @@ static char *pred_type;
+ 
+ /* bimodal predictor config (<table_size>) */
+ static int bimod_nelt = 1;
+-static int bimod_config[1] =
++int bimod_config[1] =
+   { /* bimod tbl size */2048 };
+ 
+ /* 2-level predictor config (<l1size> <l2size> <hist_size> <xor>) */
+ static int twolev_nelt = 4;
+-static int twolev_config[4] =
++int twolev_config[4] =
+   { /* l1size */1, /* l2size */1024, /* hist */8, /* xor */FALSE};
+ 
+ /* combining predictor config (<meta_table_size> */
+ static int comb_nelt = 1;
+-static int comb_config[1] =
++int comb_config[1] =
+   { /* meta_table_size */1024 };
+ 
+ /* return address stack (RAS) size */
+-static int ras_size = 8;
++int ras_size = 8;
+ 
+ /* BTB predictor config (<num_sets> <associativity>) */
+ static int btb_nelt = 2;
+-static int btb_config[2] =
++int btb_config[2] =
+   { /* nsets */512, /* assoc */4 };
+ 
+ /* instruction decode B/W (insts/cycle) */
+-static int ruu_decode_width;
++int ruu_decode_width;
+ 
+ /* instruction issue B/W (insts/cycle) */
+-static int ruu_issue_width;
++int ruu_issue_width;
+ 
+ /* run pipeline with in-order issue */
+-static int ruu_inorder_issue;
++int ruu_inorder_issue;
+ 
+ /* issue instructions down wrong execution paths */
+-static int ruu_include_spec = TRUE;
++int ruu_include_spec = TRUE;
+ 
+ /* instruction commit B/W (insts/cycle) */
+-static int ruu_commit_width;
++int ruu_commit_width;
+ 
+ /* register update unit (RUU) size */
+-static int RUU_size = 8;
++int RUU_size = 8;
+ 
+ /* load/store queue (LSQ) size */
+-static int LSQ_size = 4;
++int LSQ_size = 4;
+ 
+ /* l1 data cache config, i.e., {<config>|none} */
+-static char *cache_dl1_opt;
++char *cache_dl1_opt;
+ 
+ /* l1 data cache hit latency (in cycles) */
+ static int cache_dl1_lat;
+ 
+ /* l2 data cache config, i.e., {<config>|none} */
+-static char *cache_dl2_opt;
++char *cache_dl2_opt;
+ 
+ /* l2 data cache hit latency (in cycles) */
+ static int cache_dl2_lat;
+ 
+ /* l1 instruction cache config, i.e., {<config>|dl1|dl2|none} */
+-static char *cache_il1_opt;
++char *cache_il1_opt;
+ 
+ /* l1 instruction cache hit latency (in cycles) */
+ static int cache_il1_lat;
+ 
+ /* l2 instruction cache config, i.e., {<config>|dl1|dl2|none} */
+-static char *cache_il2_opt;
++char *cache_il2_opt;
+ 
+ /* l2 instruction cache hit latency (in cycles) */
+ static int cache_il2_lat;
+@@ -347,25 +347,25 @@ static int mem_bus_width;
+ static int mem_pipelined;
+ 
+ /* instruction TLB config, i.e., {<config>|none} */
+-static char *itlb_opt;
++char *itlb_opt;
+ 
+ /* data TLB config, i.e., {<config>|none} */
+-static char *dtlb_opt;
++char *dtlb_opt;
+ 
+ /* inst/data TLB miss latency (in cycles) */
+ static int tlb_miss_lat;
+ 
+ /* total number of integer ALU's available */
+-static int res_ialu;
++int res_ialu;
+ 
+ /* total number of integer multiplier/dividers available */
+ static int res_imult;
+ 
+ /* total number of memory system ports available (to CPU) */
+-static int res_memport;
++int res_memport;
+ 
+ /* total number of floating point ALU's available */
+-static int res_fpalu;
++int res_fpalu;
+ 
+ /* total number of floating point multiplier/dividers available */
+ static int res_fpmult;
+-- 
+1.6.0.4
+
