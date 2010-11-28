@@ -1,0 +1,26 @@
+From f6759730cc1076315ec9e3e1c6c043b6fd7e61f7 Mon Sep 17 00:00:00 2001
+From: Christoph Gerum <christoph@gerum.de>
+Date: Mon, 25 Oct 2010 15:44:08 +0200
+Subject: [PATCH] Added gitignore.
+
+---
+ .gitignore |    7 +++++++
+ 1 files changed, 7 insertions(+), 0 deletions(-)
+ create mode 100644 .gitignore
+
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..42558ee
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,7 @@
++libexo.a
++sim-outorder
++sysprobe
++
++
++*~
++*.o
+-- 
+1.6.0.4
+
