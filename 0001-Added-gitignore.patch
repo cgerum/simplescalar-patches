@@ -1,4 +1,4 @@
-From f6759730cc1076315ec9e3e1c6c043b6fd7e61f7 Mon Sep 17 00:00:00 2001
+From 76e5eb42be3ff5a705fafb017dbc2de30e92e9b2 Mon Sep 17 00:00:00 2001
 From: Christoph Gerum <christoph@gerum.de>
 Date: Mon, 25 Oct 2010 15:44:08 +0200
 Subject: [PATCH] Added gitignore.
