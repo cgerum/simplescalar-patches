@@ -1,0 +1,14 @@
+Patches against [[http://www.simplescalar.com/v4test.html][simplescalar-arm]].
+
+* Usage
+
+#+source: init
+#+begin_src sh
+    git clone https://cgerum@github.com/cgerum/simplescalar-patches.git
+  
+    ./simplescalar-patches/init.sh
+  
+    cd simplesim-arm
+    
+    make
+#+end_src
