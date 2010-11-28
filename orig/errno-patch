@@ -1,0 +1,26 @@
+diff -urN simplesim-arm/eval.c simplesim-arm-patched/eval.c
+--- simplesim-arm/eval.c	2000-11-29 15:53:54.000000000 +0100
++++ simplesim-arm-patched/eval.c	2004-07-29 09:54:22.000000000 +0200
+@@ -80,9 +80,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <ctype.h>
+-#if defined(__CYGWIN32__)
+ #include <errno.h>
+-#endif
+ 
+ #include "host.h"
+ #include "misc.h"
+diff -urN simplesim-arm/range.c simplesim-arm-patched/range.c
+--- simplesim-arm/range.c	2000-11-29 15:53:54.000000000 +0100
++++ simplesim-arm-patched/range.c	2004-07-29 09:54:34.000000000 +0200
+@@ -78,9 +78,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#if defined(__CYGWIN32__)
+ #include <errno.h>
+-#endif
+ 
+ #include "host.h"
+ #include "misc.h"

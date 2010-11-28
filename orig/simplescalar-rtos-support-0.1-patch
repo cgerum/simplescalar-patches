@@ -1,0 +1,1531 @@
+diff -rC2 simplesim-arm-vanilla/Makefile simplesim-arm-rtos/Makefile
+*** simplesim-arm-vanilla/Makefile	2000-12-05 02:26:00.000000000 +0000
+--- simplesim-arm-rtos/Makefile	2005-03-14 13:33:21.000000000 +0000
+***************
+*** 412,416 ****
+  # all targets, NOTE: library ordering is important...
+  #
+! all: sim-safe sim-uop sim-profile sim-cache sim-cheetah sim-bpred sim-outorder # sim-armulator sim-dis sim-depchk $(PROGS)
+  	@echo "my work is done here..."
+  
+--- 412,416 ----
+  # all targets, NOTE: library ordering is important...
+  #
+! all: sim-outorder # sim-armulator sim-dis sim-depchk $(PROGS)
+  	@echo "my work is done here..."
+  
+***************
+*** 520,523 ****
+--- 520,526 ----
+  	$(CC) -o sim-cache$(EEXT) $(CFLAGS) sim-cache.$(OEXT) cache.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) $(MLIBS)
+  
++ sim-outorder.dump:
++ 	$(CC) -E -o sim-outorder.dump $(CFLAGS) sim-outorder.c
++ 
+  sim-outorder$(EEXT):	sysprobe$(EEXT) sim-outorder.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT)
+  	$(CC) -o sim-outorder$(EEXT) $(CFLAGS) sim-outorder.$(OEXT) cache.$(OEXT) bpred.$(OEXT) resource.$(OEXT) ptrace.$(OEXT) $(OBJS) libexo/libexo.$(LEXT) $(MLIBS)
+diff -rC2 simplesim-arm-vanilla/cache.c simplesim-arm-rtos/cache.c
+*** simplesim-arm-vanilla/cache.c	2000-11-29 14:53:54.000000000 +0000
+--- simplesim-arm-rtos/cache.c	2005-03-11 21:23:11.000000000 +0000
+***************
+*** 586,590 ****
+  
+    /* check for a fast hit: access to same block */
+!   if (CACHE_TAGSET(cp, addr) == cp->last_tagset)
+      {
+        /* hit in the same block */
+--- 586,591 ----
+  
+    /* check for a fast hit: access to same block */
+!   if ((CACHE_TAGSET(cp, addr) == cp->last_tagset)
+!   && ( cp -> last_tagset != 0 ))
+      {
+        /* hit in the same block */
+diff -rC2 simplesim-arm-vanilla/machine.c simplesim-arm-rtos/machine.c
+*** simplesim-arm-vanilla/machine.c	2000-11-29 14:53:54.000000000 +0000
+--- simplesim-arm-rtos/machine.c	2005-03-14 13:34:01.000000000 +0000
+***************
+*** 166,169 ****
+--- 166,170 ----
+  #include <stdio.h>
+  #include <stdlib.h>
++ #include <assert.h>
+  
+  #include "host.h"
+***************
+*** 514,518 ****
+  
+      case 1:
+!       myfprintf(stream, "SPSR: 0x%08x", regs.spsr);
+        break;
+  
+--- 515,519 ----
+  
+      case 1:
+!       myfprintf(stream, "SPSR (svc): 0x%08x", regs.spsr[MD_SPSR_SVC]);
+        break;
+  
+***************
+*** 551,555 ****
+  
+    checksum ^= regs->regs_C.cpsr;
+!   checksum ^= regs->regs_C.spsr;
+    checksum ^= regs->regs_C.fpsr;
+    //  checksum ^= regs->regs_PC;
+--- 552,557 ----
+  
+    checksum ^= regs->regs_C.cpsr;
+!   checksum ^= regs->regs_C.spsr [MD_SPSR_SVC];
+!   checksum ^= regs->regs_C.spsr [MD_SPSR_IRQ];
+    checksum ^= regs->regs_C.fpsr;
+    //  checksum ^= regs->regs_PC;
+***************
+*** 827,830 ****
+--- 829,851 ----
+    switch (op)
+      {
++     case STM_US:
++     case STM_S:
++     case STM_PS:
++     case STM_PUS:
++     case STM_USW:
++     case STM_SW:
++     case STM_PSW:
++     case STM_PUSW:
++     case LDM_USL:
++     case LDM_SL:
++     case LDM_PSL:
++     case LDM_PUSL:
++     case LDM_USWL:
++     case LDM_SWL:
++     case LDM_PSWL:
++     case LDM_PUSWL:
++       assert ( 0 ) ; /* !"Guess you will need to do this after all." */
++       break ;
++ 
+      case STM:
+        offset = nregs*4 - 4;
+diff -rC2 simplesim-arm-vanilla/machine.def simplesim-arm-rtos/machine.def
+*** simplesim-arm-vanilla/machine.def	2000-12-20 06:00:08.000000000 +0000
+--- simplesim-arm-rtos/machine.def	2005-03-13 20:54:42.000000000 +0000
+***************
+*** 433,437 ****
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 433,437 ----
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 463,467 ****
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 463,467 ----
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 496,500 ****
+          SET_PSR_C(SUBC(_lhs, _rhs, _result));				\
+          SET_PSR_V(SUBV(_lhs, _rhs, _result));				\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 496,500 ----
+          SET_PSR_C(SUBC(_lhs, _rhs, _result));				\
+          SET_PSR_V(SUBV(_lhs, _rhs, _result));				\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 529,533 ****
+  	SET_PSR_C(SUBC(_rhs, _lhs, _result));				\
+  	SET_PSR_V(SUBV(_rhs, _lhs, _result));				\
+! 	SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 529,533 ----
+  	SET_PSR_C(SUBC(_rhs, _lhs, _result));				\
+  	SET_PSR_V(SUBV(_rhs, _lhs, _result));				\
+! 	SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 562,566 ****
+  	SET_PSR_C(ADDC(_lhs, _rhs, _result));				\
+  	SET_PSR_V(ADDV(_lhs, _rhs, _result));				\
+! 	SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 562,566 ----
+  	SET_PSR_C(ADDC(_lhs, _rhs, _result));				\
+  	SET_PSR_V(ADDV(_lhs, _rhs, _result));				\
+! 	SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 595,599 ****
+  	SET_PSR_C(ADDC(_lhs, _rhs, _result));				\
+  	SET_PSR_V(ADDV(_lhs, _rhs, _result));				\
+! 	SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 595,599 ----
+  	SET_PSR_C(ADDC(_lhs, _rhs, _result));				\
+  	SET_PSR_V(ADDV(_lhs, _rhs, _result));				\
+! 	SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 624,632 ****
+  	word_t _result = _lhs - _rhs - !PSR_C;				\
+  									\
+! 	SET_PSR_N((sword_t)_result < 0);				\
+! 	SET_PSR_Z(_result == 0);					\
+! 	SET_PSR_C(SUBC(_lhs, _rhs, _result));				\
+! 	SET_PSR_V(SUBV(_lhs, _rhs, _result));				\
+! 	SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 624,632 ----
+  	word_t _result = _lhs - _rhs - !PSR_C;				\
+  									\
+!     SET_PSR_N((sword_t)_result < 0);				\
+!     SET_PSR_Z(_result == 0);					\
+!     SET_PSR_C(SUBC(_lhs, _rhs, _result));				\
+!     SET_PSR_V(SUBV(_lhs, _rhs, _result));				\
+! 	SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 657,665 ****
+  	word_t _result = _rhs - _lhs - !PSR_C;				\
+  									\
+! 	SET_PSR_N((sword_t)_result < 0);				\
+! 	SET_PSR_Z(_result == 0);					\
+! 	SET_PSR_C(SUBC(_rhs, _lhs, _result));				\
+! 	SET_PSR_V(SUBV(_rhs, _lhs, _result));				\
+! 	SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 657,665 ----
+  	word_t _result = _rhs - _lhs - !PSR_C;				\
+  									\
+!         SET_PSR_N((sword_t)_result < 0);				\
+!         SET_PSR_Z(_result == 0);					\
+!         SET_PSR_C(SUBC(_rhs, _lhs, _result));				\
+!         SET_PSR_V(SUBV(_rhs, _lhs, _result));				\
+! 	SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 690,694 ****
+  	DPSR, DPSR, DNA,	DPSR, DGPR(RN), DGPR(RM), DSHRS(RS))
+  
+! DEFLINK(MSRTEQ_LINK, 0x02, "msrteq_link", 12, 0x7f)
+  
+  #define TEQS_IMPL							\
+--- 690,705 ----
+  	DPSR, DPSR, DNA,	DPSR, DGPR(RN), DGPR(RM), DSHRS(RS))
+  
+! 
+! #define MSR_CPSR_IMPL							\
+!   {									\
+!     if (COND_VALID(PSR))						\
+!       {									\
+!         do_msr ( RM , CPC , GPR(RM) , inst ) ; \
+!       }									\
+!   }
+! DEFINST(MSR_CPSR,		0x02,
+! 	"msr",			"cpsr,%d",
+! 	IntALU,			F_ICOMP,
+! 	DPSR, DGPR(13), DGPR(14),		DCOND, DGPR(13), DGPR(14), DGPR(RM) )
+  
+  #define TEQS_IMPL							\
+***************
+*** 730,734 ****
+  	DPSR, DPSR, DNA,	DCONDSH, DGPR(RN), DGPR(RM), DSHRS(RS))
+  
+! DEFLINK(MSRTST_LINK, 0x06, "msrtst_link", 12, 0x7f)
+  
+  #define CMNS_IMPL							\
+--- 741,755 ----
+  	DPSR, DPSR, DNA,	DCONDSH, DGPR(RN), DGPR(RM), DSHRS(RS))
+  
+! #define MSR_SPSR_IMPL							\
+!   {									\
+!     if (COND_VALID(PSR))						\
+!       {									\
+!         do_msr ( RM , CPC , GPR(RM) , inst ) ; \
+!       }									\
+!   }
+! DEFINST(MSR_SPSR,		0x06,
+! 	"msr",			"spsr,%m",
+! 	IntALU,			F_ICOMP,
+! 	DPSR, DGPR(13), DGPR(14),		DCOND, DGPR(RM), DGPR(13), DGPR(14))
+  
+  #define CMNS_IMPL							\
+***************
+*** 775,779 ****
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 796,800 ----
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 806,810 ****
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 827,831 ----
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 837,841 ****
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 858,862 ----
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 868,872 ****
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 889,893 ----
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 879,901 ****
+  CONNECT(SWPMRS_LINK)
+  
+- #if 0
+- DEFLINK(MRSTST_LINK, 0xff00, "mrstst_link", 0, 0xf0fff)
+- 
+- CONNECT(MRSTST_LINK)
+- 
+  #define MRS_CPSR_IMPL							\
+    {									\
+      if (COND_VALID(PSR))						\
+        {									\
+! 	/* FIXME: todo... */						\
+! 	DECLARE_FAULT(md_fault_unimpl);					\
+        }									\
+    }
+! DEFINST(MSR_CPSR,		EQ, 0xf0000,
+! 	"msr",			"%d, cpsr",
+  	IntALU,			F_ICOMP,
+! 	DGPR(RD), DNA, DNA,	DCOND, DPSR, DNA, DNA)
+! #endif
+  
+  #define TST_IMPL							\
+    {									\
+--- 900,917 ----
+  CONNECT(SWPMRS_LINK)
+  
+  #define MRS_CPSR_IMPL							\
+    {									\
+      if (COND_VALID(PSR))						\
+        {									\
+!               SET_GPR(RD,PSR); \
+        }									\
+    }
+! 
+! DEFINST(MRS_CPSR, 0,
+! 	"mrs",			"%d, cpsr",
+  	IntALU,			F_ICOMP,
+! 	DGPR(RD), DNA, DNA,	DCOND, DPSR, DNA, DNA) 
+  
++ #if 0
+  #define TST_IMPL							\
+    {									\
+***************
+*** 909,912 ****
+--- 925,929 ----
+  	IntALU,			F_ICOMP,
+  	DNA, DNA, DNA,		DCOND, DNA, DNA, DNA)
++ #endif
+  
+  #define SWP_IMPL							\
+***************
+*** 924,976 ****
+  
+  
+- CONNECT(MSRTEQ_LINK)
+- 
+- #define TEQ_IMPL							\
+-   {									\
+-     if (COND_VALID(PSR))						\
+-       {									\
+- 	/* test but don't set flags, nada... */				\
+-       }									\
+-   }
+- DEFINST(TEQ,			0x7f00,
+- 	"teq%c",		"%n,%m",
+- 	IntALU,			F_ICOMP,
+- 	DNA, DNA, DNA,		DCOND, DNA, DNA, DNA)
+- 
+- #define MSR_CPSR_IMPL							\
+-   {									\
+-     if (COND_VALID(PSR))						\
+-       {									\
+- 	/* FIXME: todo... */						\
+- 	DECLARE_FAULT(md_fault_unimpl);					\
+-       }									\
+-   }
+- DEFINST(MSR_CPSR,		0x0f,
+- 	"msr",			"cpsr,%d",
+- 	IntALU,			F_ICOMP,
+- 	DNA, DNA, DNA,		DCOND, DNA, DNA, DNA)
+  
+  
+  CONNECT(MRSSWP_LINK)
+  
+- #if 0
+- DEFLINK(MRSCMP_LINK, NE, 0x09, "mrscmp_link", 0, 0xf0fff)
+- 
+- CONNECT(MRSCMP_LINK)
+  
+  #define MRS_SPSR_IMPL							\
+!   {									\
+!     if (COND_VALID(PSR))						\
+!       {									\
+! 	/* FIXME: todo... */						\
+! 	DECLARE_FAULT(md_fault_unimpl);					\
+!       }									\
+!   }
+! DEFINST(MSR_SPSR,		EQ, 0xf0000,
+! 	"mrs",			"%d, spsr",
+! 	IntALU,			F_ICOMP,
+! 	DGPR(RD), DNA, DNA,	DCOND, DPSR, DNA, DNA, DNA)
+! #endif
+  
+  #define CMP_IMPL							\
+    {									\
+--- 941,962 ----
+  
+  
+  
+  
+  CONNECT(MRSSWP_LINK)
+  
+  
+  #define MRS_SPSR_IMPL							\
+!     {    \
+!         if (COND_VALID(PSR)) \
+!         {									\
+!               SET_GPR(RD,SPSR);             \
+!         }									\
+!     }
+! DEFINST(MRS_SPSR,	0,
+!   	"mrs",			"%d, spsr",
+!   	IntALU,			F_ICOMP,
+!   	DGPR(RD), DNA, DNA,	DCOND, DPSR, DNA, DNA)
+  
++ #if 0
+  #define CMP_IMPL							\
+    {									\
+***************
+*** 984,987 ****
+--- 970,974 ----
+  	IntALU,			F_ICOMP,
+  	DNA, DNA, DNA,		DCOND, DNA, DNA, DNA)
++ #endif
+  
+  #define SWP1_IMPL							\
+***************
+*** 999,1028 ****
+  
+  
+- CONNECT(MSRTST_LINK)
+- 
+- #define TST1_IMPL							\
+-   {									\
+-     if (COND_VALID(PSR))						\
+-       {									\
+- 	/* test but don't set flags, nada... */				\
+-       }									\
+-   }
+- DEFINST(TST1,			0x7f00,
+- 	"tst%c",		"%n,%m",
+- 	IntALU,			F_ICOMP,
+- 	DNA, DNA, DNA,		DCOND, DNA, DNA, DNA)
+- 
+- #define MSR_SPSR_IMPL							\
+-   {									\
+-     if (COND_VALID(PSR))						\
+-       {									\
+- 	/* FIXME: todo... */						\
+- 	DECLARE_FAULT(md_fault_unimpl);					\
+-       }									\
+-   }
+- DEFINST(MSR_SPSR,		0x0f,
+- 	"msr",			"spsr,%d",
+- 	IntALU,			F_ICOMP,
+- 	DNA, DNA, DNA,		DCOND, DNA, DNA, DNA)
+  
+  
+--- 986,989 ----
+***************
+*** 1053,1057 ****
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 1014,1018 ----
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 1085,1089 ****
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 1046,1050 ----
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 1116,1120 ****
+          SET_PSR_C(SUBC(_lhs, _rhs, _result));				\
+          SET_PSR_V(SUBV(_lhs, _rhs, _result));				\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 1077,1081 ----
+          SET_PSR_C(SUBC(_lhs, _rhs, _result));				\
+          SET_PSR_V(SUBV(_lhs, _rhs, _result));				\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 1147,1151 ****
+  	SET_PSR_C(SUBC(_rhs, _lhs, _result));				\
+  	SET_PSR_V(SUBV(_rhs, _lhs, _result));				\
+! 	SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 1108,1112 ----
+  	SET_PSR_C(SUBC(_rhs, _lhs, _result));				\
+  	SET_PSR_V(SUBV(_rhs, _lhs, _result));				\
+! 	SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 1178,1182 ****
+  	SET_PSR_C(ADDC(_lhs, _rhs, _result));				\
+  	SET_PSR_V(ADDV(_lhs, _rhs, _result));				\
+! 	SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 1139,1143 ----
+  	SET_PSR_C(ADDC(_lhs, _rhs, _result));				\
+  	SET_PSR_V(ADDV(_lhs, _rhs, _result));				\
+! 	SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 1209,1213 ****
+  	SET_PSR_C(ADDC(_lhs, _rhs, _result));				\
+  	SET_PSR_V(ADDV(_lhs, _rhs, _result));				\
+! 	SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 1170,1174 ----
+  	SET_PSR_C(ADDC(_lhs, _rhs, _result));				\
+  	SET_PSR_V(ADDV(_lhs, _rhs, _result));				\
+! 	SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 1240,1244 ****
+  	SET_PSR_C(SUBC(_lhs, _rhs, _result));				\
+  	SET_PSR_V(SUBV(_lhs, _rhs, _result));				\
+! 	SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 1201,1205 ----
+  	SET_PSR_C(SUBC(_lhs, _rhs, _result));				\
+  	SET_PSR_V(SUBV(_lhs, _rhs, _result));				\
+! 	SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 1271,1275 ****
+  	SET_PSR_C(SUBC(_rhs, _lhs, _result));				\
+  	SET_PSR_V(SUBV(_rhs, _lhs, _result));				\
+! 	SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 1232,1236 ----
+  	SET_PSR_C(SUBC(_rhs, _lhs, _result));				\
+  	SET_PSR_V(SUBV(_rhs, _lhs, _result));				\
+! 	SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 1312,1316 ****
+  	DPSR, DNA, DNA,		DCOND, DGPR(RN), DNA, DNA)
+  
+! DEFLINK(MSRITEQI_LINK, 0x02, "msriteqi_link", 12, 0x7f)
+  
+  #define TEQSI_IMPL							\
+--- 1273,1287 ----
+  	DPSR, DNA, DNA,		DCOND, DGPR(RN), DNA, DNA)
+  
+! #define MSRI_CPSR_IMPL							\
+!   {									\
+!     if (COND_VALID(PSR))						\
+!       {									\
+!         do_msr ( -1 , CPC , ROTR(ROTIMM,  ROTAMT << 1) , inst );		\
+!       }									\
+!   }
+! DEFINST(MSRI_CPSR,		0x02,
+! 	"msr",			"cpsr,%d",
+! 	IntALU,			F_ICOMP,
+! 	DPSR, DGPR(13), DGPR(14),		DCOND, DGPR(13), DGPR(14), DNA )
+  
+  #define TEQSI_IMPL							\
+***************
+*** 1362,1366 ****
+  	DPSR, DNA, DNA,		DCOND, DGPR(RN), DNA, DNA)
+  
+! DEFLINK(MSRITSTI_LINK, 0x06, "msritsti_link", 12, 0x7f)
+  
+  #define CMNSI_IMPL							\
+--- 1333,1348 ----
+  	DPSR, DNA, DNA,		DCOND, DGPR(RN), DNA, DNA)
+  
+! 
+! #define MSRI_SPSR_IMPL							\
+!   {									\
+!     if (COND_VALID(PSR))						\
+!       {									\
+!         do_msr ( -1 , CPC , ROTR(ROTIMM,  ROTAMT << 1) , inst );		\
+!       }									\
+!   }
+! DEFINST(MSRI_SPSR,		0x06,
+! 	"msr",			"spsr,%d",
+! 	IntALU,			F_ICOMP,
+! 	DPSR, DGPR(13), DGPR(14),		DCOND, DGPR(13), DGPR(14), DNA )
+  
+  #define CMNSI_IMPL							\
+***************
+*** 1406,1410 ****
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 1388,1392 ----
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 1438,1442 ****
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 1420,1424 ----
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 1470,1474 ****
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 1452,1456 ----
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 1502,1506 ****
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR(RD, _result);						\
+        }									\
+    }
+--- 1484,1488 ----
+  	SET_PSR_N((sword_t)_result < 0);				\
+  	SET_PSR_Z(_result == 0);					\
+!         SET_GPR_RI(RD, _result);						\
+        }									\
+    }
+***************
+*** 1511,1568 ****
+  
+  
+- CONNECT(MSRITEQI_LINK)
+  
+- #define TEQI_IMPL							\
+-   {									\
+-     if (COND_VALID(PSR))						\
+-       {									\
+- 	/* test but don't set flags, nada... */				\
+-       }									\
+-   }
+- DEFINST(TEQI,			0x7f00,
+- 	"teq%c",		"%n,#%i",
+- 	IntALU,			F_ICOMP,
+- 	DNA, DNA, DNA,		DCOND, DNA, DNA, DNA)
+  
+- #define MRSI_CPSR_IMPL							\
+-   {									\
+-     if (COND_VALID(PSR))						\
+-       {									\
+- 	/* FIXME: todo... */						\
+- 	DECLARE_FAULT(md_fault_unimpl);					\
+-       }									\
+-   }
+- DEFINST(MRSI_CPSR,		0x0f,
+- 	"mrs",			"cpsr,%d",
+- 	IntALU,			F_ICOMP,
+- 	DNA, DNA, DNA,		DCOND, DNA, DNA, DNA)
+- 
+- 
+- CONNECT(MSRITSTI_LINK)
+- 
+- #define TSTI1_IMPL							\
+-   {									\
+-     if (COND_VALID(PSR))						\
+-       {									\
+- 	/* test but don't set flags, nada... */				\
+-       }									\
+-   }
+- DEFINST(TSTI1,			0x7f00,
+- 	"tst%c",		"%n,#%i",
+- 	IntALU,			F_ICOMP,
+- 	DNA, DNA, DNA,		DCOND, DNA, DNA, DNA)
+- 
+- #define MRSI_SPSR_IMPL							\
+-   {									\
+-     if (COND_VALID(PSR))						\
+-       {									\
+- 	/* FIXME: todo... */						\
+- 	DECLARE_FAULT(md_fault_unimpl);					\
+-       }									\
+-   }
+- DEFINST(MRSI_SPSR,		0x0f,
+- 	"mrs",			"spsr,%d",
+- 	IntALU,			F_ICOMP,
+- 	DNA, DNA, DNA,		DCOND, DNA, DNA, DNA)
+  
+  
+--- 1493,1498 ----
+***************
+*** 4216,4226 ****
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+- #if 0
+  
+  /* STM_S, 0x04, TODO... */
+  
+  DEFINST(STM_S,			0x04,
+  	"stm%c%a",		"%n,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP/*|F_CISC*/,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+--- 4146,4156 ----
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+  
+  /* STM_S, 0x04, TODO... */
+  
++ #define STM_S_IMPL
+  DEFINST(STM_S,			0x04,
+  	"stm%c%a",		"%n,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+***************
+*** 4228,4241 ****
+  /* LDM_SL, 0x05, TODO... */
+  
+  DEFINST(LDM_SL,			0x05,
+  	"stm%c%a",		"%n,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP/*|F_CISC*/,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+  /* STM_SW, 0x06, TODO... */
+  
+  DEFINST(STM_SW,			0x06,
+  	"stm%c%a",		"%n!,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP/*|F_CISC*/,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+--- 4158,4173 ----
+  /* LDM_SL, 0x05, TODO... */
+  
++ #define LDM_SL_IMPL
+  DEFINST(LDM_SL,			0x05,
+  	"stm%c%a",		"%n,%R",
+! 	RdPort,			F_MEM|F_STORE|F_DISP|F_CISC,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+  /* STM_SW, 0x06, TODO... */
+  
++ #define STM_SW_IMPL
+  DEFINST(STM_SW,			0x06,
+  	"stm%c%a",		"%n!,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+***************
+*** 4243,4251 ****
+  /* LDM_SWL, 0x07, TODO... */
+  
+  DEFINST(LDM_SWL,			0x07,
+  	"stm%c%a",		"%n!,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP/*|F_CISC*/,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+- #endif
+  
+  #define STM_U_IMPL							\
+--- 4175,4183 ----
+  /* LDM_SWL, 0x07, TODO... */
+  
++ #define LDM_SWL_IMPL
+  DEFINST(LDM_SWL,			0x07,
+  	"stm%c%a",		"%n!,%R",
+! 	RdPort,			F_MEM|F_STORE|F_DISP|F_CISC,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+  #define STM_U_IMPL							\
+***************
+*** 4368,4392 ****
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+- #if 0
+- 
+  /* STM_US, 0x0c, TODO... */
+! 
+  DEFINST(STM_US,			0x0c,
+  	"stm%c%a",		"%n,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP/*|F_CISC*/,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+  /* LDM_USL, 0x0d, TODO... */
+! 
+  DEFINST(LDM_USL,			0x0d,
+  	"stm%c%a",		"%n,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP/*|F_CISC*/,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+  /* STM_USW, 0x0e, TODO... */
+  
+  DEFINST(STM_USW,			0x0e,
+  	"stm%c%a",		"%n,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP/*|F_CISC*/,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+--- 4300,4323 ----
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+  /* STM_US, 0x0c, TODO... */
+! #define STM_US_IMPL
+  DEFINST(STM_US,			0x0c,
+  	"stm%c%a",		"%n,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+  /* LDM_USL, 0x0d, TODO... */
+! #define LDM_USL_IMPL
+  DEFINST(LDM_USL,			0x0d,
+  	"stm%c%a",		"%n,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+  /* STM_USW, 0x0e, TODO... */
+  
++ #define STM_USW_IMPL
+  DEFINST(STM_USW,			0x0e,
+  	"stm%c%a",		"%n,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+***************
+*** 4394,4403 ****
+  /* LDM_USWL, 0x0f, TODO... */
+  
+  DEFINST(LDM_USWL,			0x0f,
+  	"stm%c%a",		"%n,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP/*|F_CISC*/,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+- #endif
+- 
+  
+  CONNECT(BLKPRE_LINK)
+--- 4325,4333 ----
+  /* LDM_USWL, 0x0f, TODO... */
+  
++ #define LDM_USWL_IMPL
+  DEFINST(LDM_USWL,			0x0f,
+  	"stm%c%a",		"%n,%R",
+! 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+  CONNECT(BLKPRE_LINK)
+***************
+*** 4524,4533 ****
+--- 4454,4489 ----
+  /* STM_PS, 0x04, TODO... */
+  
++ #define STM_PS_IMPL
++ DEFINST(STM_PS,			0x04,
++ 	"stm%c%a",		"%n,%R",
++ 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
++ 	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
++ 
++ 
+  /* LDM_PSL, 0x05, TODO... */
+  
++ #define LDM_PSL_IMPL
++ DEFINST(LDM_PSL,			0x05,
++ 	"stm%c%a",		"%n,%R",
++ 	RdPort,			F_MEM|F_STORE|F_DISP|F_CISC,
++ 	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
++ 
+  /* STM_PSW, 0x06, TODO... */
+  
++ #define STM_PSW_IMPL
++ DEFINST(STM_PSW,			0x06,
++ 	"stm%c%a",		"%n!,%R",
++ 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
++ 	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
++ 
++ 
+  /* LDM_PSWL, 0x07, TODO... */
+  
++ #define LDM_PSWL_IMPL
++ DEFINST(LDM_PSWL,			0x07,
++ 	"stm%c%a",		"%n!,%R",
++ 	RdPort,			F_MEM|F_STORE|F_DISP|F_CISC,
++ 	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
++ 
+  #define STM_PU_IMPL							\
+    {									\
+***************
+*** 4649,4660 ****
+--- 4605,4640 ----
+  	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
++ 
+  /* STM_PUS, 0x0c, TODO... */
++ #define STM_PUS_IMPL
++ DEFINST(STM_PUS,			0x0c,
++ 	"stm%c%a",		"%n,%R",
++ 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
++ 	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+  /* LDM_PUSL, 0x0d, TODO... */
++ #define LDM_PUSL_IMPL
++ DEFINST(LDM_PUSL,			0x0d,
++ 	"stm%c%a",		"%n,%R",
++ 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
++ 	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
+  
+  /* STM_PUSW, 0x0e, TODO... */
+  
++ #define STM_PUSW_IMPL
++ DEFINST(STM_PUSW,			0x0e,
++ 	"stm%c%a",		"%n,%R",
++ 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
++ 	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
++ 
++ 
+  /* LDM_PUSWL, 0x0f, TODO... */
+  
++ #define LDM_PUSWL_IMPL
++ DEFINST(LDM_PUSWL,			0x0f,
++ 	"stm%c%a",		"%n,%R",
++ 	WrPort,			F_MEM|F_STORE|F_DISP|F_CISC,
++ 	DNA, DNA, DNA,		DNA, DNA, DNA, DNA)
++ 
+  
+  CONNECT(CPROC_LINK)
+***************
+*** 7589,7595 ****
+  #undef MVNSI_IMPL
+  #undef TEQI_IMPL
+! #undef MRSI_CPSR_IMPL
+  #undef TSTI1_IMPL
+! #undef MRSI_SPSR_IMPL
+  #undef MUL_IMPL
+  #undef MULS_IMPL
+--- 7569,7575 ----
+  #undef MVNSI_IMPL
+  #undef TEQI_IMPL
+! #undef MSRI_CPSR_IMPL
+  #undef TSTI1_IMPL
+! #undef MSRI_SPSR_IMPL
+  #undef MUL_IMPL
+  #undef MULS_IMPL
+***************
+*** 7701,7704 ****
+--- 7681,7697 ----
+  #undef LDR_RPUBWL_IMPL
+  #undef STM_IMPL
++ #undef STM_S_IMPL 
++ #undef LDM_SL_IMPL
++ #undef LDM_SWL_IMPL 
++ #undef STM_US_IMPL
++ #undef LDM_USL_IMPL
++ #undef LDM_USWL_IMPL
++ #undef LDM_PUWL_IMPL
++ #undef STM_PS_IMPL
++ #undef LDM_PSL_IMPL
++ #undef LDM_PSWL_IMPL
++ #undef STM_PUS_IMPL
++ #undef LDM_PUSL_IMPL
++ #undef LDM_PUSWL_IMPL
+  #undef LDM_L_IMPL
+  #undef STM_W_IMPL
+diff -rC2 simplesim-arm-vanilla/machine.h simplesim-arm-rtos/machine.h
+*** simplesim-arm-vanilla/machine.h	2000-11-29 14:53:54.000000000 +0000
+--- simplesim-arm-rtos/machine.h	2005-03-13 20:45:42.000000000 +0000
+***************
+*** 222,225 ****
+--- 222,226 ----
+  
+  
++ #define MD_CLOCK_CYCLES_PER_MICROSECOND     25 /* i.e. 25MHz processor */
+  /*
+   * target-dependent register file definitions, used by regs.[hc]
+***************
+*** 227,231 ****
+  
+  /* number of integer registers */
+! #define MD_NUM_IREGS		(/* arch */16 + /* Ucode */16)
+  
+  /* number of floating point registers */
+--- 228,237 ----
+  
+  /* number of integer registers */
+! #define MD_NUM_IREGS		(/* arch */16 + /* Ucode */16 + /*saved*/ 10)
+! #define MD_R13_SVC          32
+! #define MD_R13_ABORT        34
+! #define MD_R13_IRQ          36
+! #define MD_R13_FIQ          38
+! #define MD_R13_UNDEF        40
+  
+  /* number of floating point registers */
+***************
+*** 233,241 ****
+  
+  /* number of control registers */
+! #define MD_NUM_CREGS		3
+  
+  /* total number of registers, excluding PC and NPC */
+  #define MD_TOTAL_REGS							\
+!   (/*int*/32 + /*fp*/8 + /*misc*/3 + /*tmp*/1 + /*mem*/1 + /*ctrl*/1)
+  
+  /* general purpose (integer) register file entry type */
+--- 239,247 ----
+  
+  /* number of control registers */
+! #define MD_NUM_CREGS		4
+  
+  /* total number of registers, excluding PC and NPC */
+  #define MD_TOTAL_REGS							\
+!   (/*int*/32 + /*fp*/8 + /*misc*/3 + /*tmp*/1 + /*mem*/1 + /*ctrl*/2)
+  
+  /* general purpose (integer) register file entry type */
+***************
+*** 251,258 ****
+  typedef struct {
+    word_t cpsr;			/* processor status register */
+!   word_t spsr;
+    word_t fpsr;			/* floating point status register */
+  } md_ctrl_t;
+  
+  /* well known registers */
+  enum md_reg_names {
+--- 257,270 ----
+  typedef struct {
+    word_t cpsr;			/* processor status register */
+!   word_t spsr [ 5 ] ;
+    word_t fpsr;			/* floating point status register */
+  } md_ctrl_t;
+  
++ #define MD_SPSR_SVC     0
++ #define MD_SPSR_ABORT   1
++ #define MD_SPSR_UNDEF   2
++ #define MD_SPSR_IRQ     3
++ #define MD_SPSR_FIQ     4
++ 
+  /* well known registers */
+  enum md_reg_names {
+diff -rC2 simplesim-arm-vanilla/sim-outorder.c simplesim-arm-rtos/sim-outorder.c
+*** simplesim-arm-vanilla/sim-outorder.c	2000-12-05 02:26:18.000000000 +0000
+--- simplesim-arm-rtos/sim-outorder.c	2005-03-13 20:52:55.000000000 +0000
+***************
+*** 188,191 ****
+--- 188,192 ----
+   */
+  
++ /*#define JACK_DEBUGGING*/
+  #include <stdio.h>
+  #include <stdlib.h>
+***************
+*** 508,512 ****
+  
+  /* cycle counter */
+! static tick_t sim_cycle = 0;
+  
+  /* occupancy counters */
+--- 509,524 ----
+  
+  /* cycle counter */
+! tick_t sim_cycle = 0;
+! tick_t timer_next_interrupt_at = 0;
+! tick_t timer_period = 0;
+! int timer_return_from_interrupt_address = 0;
+! int timer_do_return_from_interrupt = 0;
+! enum { PENDING_FLUSH , 
+!     HANDLING , NORMAL } timer_int_state ;
+! 
+! static void do_return_from_interrupt ( bool_t swap_regs ) ;
+! static void do_msr ( int reg , int pc , int new_value , md_inst_t inst ) ;
+! static int get_mode_shift ( void ) ;
+! static int get_current_spsr ( void ) ;
+  
+  /* occupancy counters */
+***************
+*** 3787,3799 ****
+     provided for fast recovery during wrong path execute (see tracer_recover()
+     for details on this process */
+! #define GPR(N)                  (BITMAP_SET_P(use_spec_R, R_BMAP_SZ, (N))\
+! 				 ? spec_regs_R[N]                       \
+! 				 : regs.regs_R[N])
+  #define SET_GPR(N,EXPR)         ((void)(((N) == 15) ? setPC++ : 0),	\
+  				 spec_mode				\
+! 				 ? ((spec_regs_R[N] = (EXPR)),		\
+  				    BITMAP_SET(use_spec_R, R_BMAP_SZ, (N)),\
+! 				    spec_regs_R[N])			\
+! 				 : (regs.regs_R[N] = (EXPR)))
+  
+  #if defined(TARGET_PISA)
+--- 3799,3818 ----
+     provided for fast recovery during wrong path execute (see tracer_recover()
+     for details on this process */
+! #define MODESHIFT(N)    \
+!             ((( (N) == 14 ) || ( (N) == 13 )) ? \
+!                 ( (N) + get_mode_shift () ) : (N) )
+! #define GPR(N)  (BITMAP_SET_P(use_spec_R, R_BMAP_SZ, (N))\
+! 				 ? spec_regs_R[MODESHIFT(N)]                       \
+! 				 : regs.regs_R[MODESHIFT(N)])
+  #define SET_GPR(N,EXPR)         ((void)(((N) == 15) ? setPC++ : 0),	\
+  				 spec_mode				\
+! 				 ? ((spec_regs_R[MODESHIFT(N)] = (EXPR)),		\
+  				    BITMAP_SET(use_spec_R, R_BMAP_SZ, (N)),\
+! 				    spec_regs_R[MODESHIFT(N)])			\
+! 				 : (regs.regs_R[MODESHIFT(N)] = (EXPR)))
+! #define SET_GPR_RI(N,EXPR) \
+!         if ((N)==15) { SET_GPR((N),(EXPR)) ; do_return_from_interrupt(TRUE); } \
+!         else { SET_GPR((N),(EXPR)) ; } 
+!         
+  
+  #if defined(TARGET_PISA)
+***************
+*** 3915,3918 ****
+--- 3934,3945 ----
+  				    spec_regs_C.cpsr)			\
+  				 : (regs.regs_C.cpsr = (EXPR)))
++ #define SPSR    (BITMAP_SET_P(use_spec_C, C_BMAP_SZ,/*spsr*/3)\
++ 				 ? spec_regs_C.spsr	[get_current_spsr()]		\
++ 				 : regs.regs_C.spsr [get_current_spsr()])
++ #define SET_SPSR(EXPR)		(spec_mode				\
++ 				 ? ((spec_regs_C.spsr[get_current_spsr()] = (EXPR)),	\
++ 				   BITMAP_SET(use_spec_C,C_BMAP_SZ,/*spsr*/3),\
++ 				    spec_regs_C.spsr[get_current_spsr()])			\
++ 				 : (regs.regs_C.spsr[get_current_spsr()] = (EXPR)))
+  
+  #define PSR_N			(BITMAP_SET_P(use_spec_C, C_BMAP_SZ,/*cpsr*/0)\
+***************
+*** 4792,4798 ****
+        fetch_regs_PC = fetch_pred_PC;
+  
+        /* is this a bogus text address? (can happen on mis-spec path) */
+!       if (ld_text_base <= fetch_regs_PC
+! 	  && fetch_regs_PC < (ld_text_base+ld_text_size)
+  	  && !(fetch_regs_PC & (sizeof(md_inst_t)-1)))
+  	{
+--- 4819,4826 ----
+        fetch_regs_PC = fetch_pred_PC;
+  
++ 
+        /* is this a bogus text address? (can happen on mis-spec path) */
+!       if ( /* ld_text_base <= fetch_regs_PC &&  -- Interrupt vector table */
+! 	  fetch_regs_PC < (ld_text_base+ld_text_size)
+  	  && !(fetch_regs_PC & (sizeof(md_inst_t)-1)))
+  	{
+***************
+*** 5097,5100 ****
+--- 5125,5234 ----
+  } /* end profiling option */
+  
++ static void stack_info ( void )
++ {
++ #ifdef JACK_DEBUGGING
++     md_gpr_t r ;
++     
++     memcpy ( r , ( spec_mode ? ( spec_regs_R ) : ( regs.regs_R )) ,
++             sizeof ( md_gpr_t ) ) ;
++ 
++     fprintf ( stderr , "R13_usr = %x  R13_svc = %x  R13_abort = %x  "
++             "R13_undef = %x  R13_irq = %x  R13_fiq = %x\n" ,
++             r [ 13 ] , r [ MD_R13_SVC ] , r [ MD_R13_ABORT ] ,
++             r [ MD_R13_UNDEF ] , r [ MD_R13_IRQ ] , r [ MD_R13_FIQ ] ) ;
++ #endif
++ }
++ 
++ static int get_mode_shift ( void )
++ {
++     switch ( (PSR) & 0x1f )
++     {
++         case 0x1f :                             /* SYS mode and */
++         case 0x10 : return 0 ;                  /* user mode share registers */
++         case 0x13 : return ( MD_R13_SVC - 13 ) ;/* SVC mode */
++         case 0x12 : return ( MD_R13_IRQ - 13 ) ;/* IRQ mode */
++         case 0x11 : return ( MD_R13_FIQ - 13 ) ;/* FIQ mode */
++         case 0x17 : return ( MD_R13_ABORT - 13 ) ;/* ABORT mode */
++         default :   if ( ! spec_mode )
++                     {
++                         fprintf ( stderr , "Unknown mode %x (cpsr: %x) %d\n" , 
++                             (PSR) & 0x1f , (PSR) , spec_mode ) ;
++                     }
++                     assert ( spec_mode ) ;
++                     return ( MD_R13_UNDEF - 13 ) ;
++     }
++ }
++ 
++ static int get_current_spsr ( void )
++ {
++     switch ( (PSR) & 0x1f )
++     {
++         case 0x13 : return MD_SPSR_SVC ;
++         case 0x12 : return MD_SPSR_IRQ ;
++         case 0x11 : return MD_SPSR_FIQ ;
++         case 0x17 : return MD_SPSR_ABORT ;
++         default :   return MD_SPSR_UNDEF ;
++     }
++ }
++ 
++ static void do_return_from_interrupt ( bool_t swap_regs )
++ {
++ #ifdef JACK_DEBUGGING
++         fprintf ( stderr , "%sreturn from int (%sswap regs), "
++                 "pc = %x, lr = %x, cpsr = %x, spsr = %x, %s\n" ,
++             spec_mode ? "speculative " : "" , swap_regs ? "" : "don't " ,
++             GPR(15), GPR(14) , PSR , SPSR ,
++             ( timer_int_state == HANDLING ) ? "" : "NOT HANDLING!" ) ;
++         verbose = 1 ; 
++ #endif
++         SET_PSR ( SPSR ) ; /* this macro is spec mode aware */
++         if ( ! spec_mode )
++         {
++             timer_int_state = NORMAL ;
++         }
++         stack_info () ;
++ }
++ 
++ static void do_msr ( int reg , int pc , int new_value , md_inst_t inst )
++ {
++     unsigned mask = 0 ;
++     int use_spsr = ( inst & 0x400000 ) ;
++ 
++     mask |= ( inst & 0x10000 ) ? 0x000000ff : 0 ;
++     mask |= ( inst & 0x20000 ) ? 0x0000ff00 : 0 ;
++     mask |= ( inst & 0x40000 ) ? 0x00ff0000 : 0 ;
++     mask |= ( inst & 0x80000 ) ? 0xff000000L : 0 ;
++ 
++         
++     if ( use_spsr )
++     {
++         /* move to SPSR */
++ #ifdef JACK_DEBUGGING
++         const char * mode ;
++ 
++         switch ( PSR & 0x1f )
++         {
++             case 0x11 :     mode = "fiq" ; break ;
++             case 0x12 :     mode = "irq" ; break ;
++             case 0x13 :     mode = "svc" ; break ;
++             case 0x17 :     mode = "abort" ; break ;
++             default :       mode = "undef" ; break ;
++         }
++         fprintf ( stderr , "at %x, mode %x: "
++             "SPSR_%s <-- r%d %x (inst: %x, mask: %x)\n" , 
++                 pc , ( PSR & 0x1f ) , mode , reg , new_value , inst , mask ) ;
++ #endif
++         SET_SPSR ( ( SPSR & ~mask ) | ( new_value & mask )) ;
++     } else { /* CPSR */
++ #ifdef JACK_DEBUGGING
++         fprintf ( stderr , "at %x, mode %x: "
++             "CPSR <-- r%d %x (inst: %x, mask: %x)\n" , 
++                 pc , ( PSR & 0x1f ) , reg , new_value , inst , mask ) ;
++ #endif
++         SET_PSR ( ( PSR & ~mask ) | ( new_value & mask ) ) ;
++     }
++     stack_info () ;
++ }
++ 
+  /* start simulation, program loaded, processor precise state initialized */
+  void
+***************
+*** 5110,5113 ****
+--- 5254,5260 ----
+    regs.regs_PC = ld_prog_entry;
+    regs.regs_NPC = regs.regs_PC + sizeof(md_inst_t);
++ regs . regs_C . cpsr = 0xd3 ; /* supervisor mode, interrupts disabled */
++ regs . regs_C . spsr [ MD_SPSR_SVC ] = regs . regs_C . cpsr ; 
++ timer_int_state = NORMAL ;
+  
+     /* make a database for the pipetrace statistics */
+***************
+*** 5235,5238 ****
+--- 5382,5390 ----
+    for (;;)
+      {
++         bool_t allow_dispatch ;
++ 
++         allow_dispatch = ( timer_int_state != PENDING_FLUSH )
++                     || in_flow ;
++ 
+        /* RUU/LSQ sanity checks */
+  #if 0
+***************
+*** 5281,5287 ****
+  	}
+  
+        /* decode and dispatch new operations */
+        /* ==> insert ops w/ no deps or all regs ready --> reg deps resolved */
+!       ruu_dispatch();
+  
+        if (bugcompat_mode)
+--- 5433,5444 ----
+  	}
+  
++ 
++ 
+        /* decode and dispatch new operations */
+        /* ==> insert ops w/ no deps or all regs ready --> reg deps resolved */
+!       if ( allow_dispatch )
+!       {
+!           ruu_dispatch();
+!       }
+  
+        if (bugcompat_mode)
+***************
+*** 5296,5299 ****
+--- 5453,5530 ----
+  	}
+  
++         if ( timer_int_state == PENDING_FLUSH )
++         {
++ #ifdef JACK_DEBUGGING
++             fprintf ( stderr , "  Intt pending: " ) ;
++ #endif
++             if ( RUU_num > 0 )
++             {
++ #ifdef JACK_DEBUGGING
++                 fprintf ( stderr , " RUU still not empty: %d\n" , RUU_num ) ;
++ #endif
++             } else if ( in_flow )
++             {
++ #ifdef JACK_DEBUGGING
++                 fprintf ( stderr , " still in microcode flow\n" ) ;
++ #endif
++             } else {
++ #ifdef JACK_DEBUGGING
++                 fprintf ( stderr , " RUU empty: switch register banks\n" ) ;
++ 
++                 fprintf ( stderr , "Pred PC was 0x%x, %d, "
++                     "real PC was 0x%x, %d, next PC was 0x%x, %d\n" ,
++                     fetch_pred_PC , fetch_pred_PC ,
++                     regs . regs_PC , regs . regs_PC ,
++                     regs . regs_NPC , regs . regs_NPC ) ;
++ #endif
++                 {
++ #ifdef JACK_DEBUGGING
++ 			{
++ 				md_inst_t j ;
++ 
++ 				MD_FETCH_INST(j, mem, 0x38);
++ 				fprintf ( stderr , 
++ 					"Int vector to addr %x.\n" , j ) ;
++ 			}
++ #endif
++                     if ( fetch_num > 0 )
++                     {
++                         regs.regs_PC = fetch_data[fetch_head].regs_PC;
++ #ifdef JACK_DEBUGGING
++                         fprintf ( stderr , "Stored PC for next: 0x%x\n" ,
++                             regs . regs_PC ) ;
++ #endif
++                     } else {
++                         /* Ok... so... what's the next PC then? */
++                         regs.regs_PC = fetch_pred_PC ;
++ #ifdef JACK_DEBUGGING
++                         fprintf ( stderr , "WARNING! fetch_num == 0\n" ) ;
++ #endif
++                     }
++ 
++                     
++                     timer_int_state = HANDLING ;
++                     /* set up R14_irq - next instruction to be executed + 4 */
++                     regs . regs_R [ MD_R13_IRQ + 1 ] = regs . regs_PC + 4 ;
++                     /* set PC for interrupt */
++                     regs . regs_PC = 0x18 ;
++                     regs . regs_NPC = regs . regs_PC + 4 ;
++                     /* set up SPSR */
++                     regs . regs_C . spsr [ MD_SPSR_IRQ ] = PSR ;
++                     /* set up CPSR */
++                     SET_PSR (( PSR & ~0xff ) | 0xd2 ) ; /* interrupt mode */
++                 } 
++                 /* zap fetch queue too */
++                 fetch_num = fetch_tail = fetch_head = 0 ;
++ 
++                 fetch_regs_PC = regs.regs_PC; 
++                 fetch_pred_PC = regs.regs_PC;
++ #ifdef JACK_DEBUGGING
++                 fprintf ( stderr , "PC becomes 0x%x, %d\n" ,
++                     fetch_pred_PC , fetch_pred_PC ) ;
++ #endif
++             }
++         }
++ 
+        /* call instruction fetch unit if it is not blocked */
+        if (!ruu_fetch_issue_delay)
+***************
+*** 5302,5306 ****
+  	{
+  	  ruu_fetch();
+! 	  ruu_dispatch();
+  	  ruu_fetch();
+  	  ruu_fetch_issue_delay = 0;
+--- 5533,5540 ----
+  	{
+  	  ruu_fetch();
+!       if ( allow_dispatch )
+!       {
+!       ruu_dispatch();
+!     }
+  	  ruu_fetch();
+  	  ruu_fetch_issue_delay = 0;
+***************
+*** 5329,5332 ****
+--- 5563,5590 ----
+        sim_cycle++;
+  
++     switch ( timer_int_state )
++     {
++         case NORMAL :
++                 if (( timer_next_interrupt_at > 0 )
++                 && (( PSR & 0x80 ) == 0 ) 
++                                 /* interrupts enabled */
++                 && ( sim_cycle >= timer_next_interrupt_at ))
++                 {
++                     double seconds = (( (double) ((long long) sim_cycle )) /
++                         ( (double) MD_CLOCK_CYCLES_PER_MICROSECOND *
++                             1000000.0 )) ;
++                     timer_int_state = PENDING_FLUSH ;
++                     timer_do_return_from_interrupt = 0 ;
++                     timer_next_interrupt_at = sim_cycle + timer_period ;
++                     fprintf ( stderr , "tick - %lld - %1.4f seconds\n" , 
++                             ((long long) sim_cycle ) , seconds ) ;
++ 		    /* verbose = 1 ; */
++                 }
++                 break ;
++         default :
++                 break ;
++     }
++ 
++ 
+        /* finish early? */
+        if (max_insts && sim_num_insn >= max_insts)
+diff -rC2 simplesim-arm-vanilla/syscall.c simplesim-arm-rtos/syscall.c
+*** simplesim-arm-vanilla/syscall.c	2000-11-29 14:53:54.000000000 +0000
+--- simplesim-arm-rtos/syscall.c	2005-03-14 13:32:33.000000000 +0000
+***************
+*** 1007,1010 ****
+--- 1007,1013 ----
+  };
+  
++ extern tick_t timer_next_interrupt_at ;
++ extern tick_t timer_period ;
++ extern tick_t sim_cycle ;
+  
+  /* ARM SYSTEM CALL CONVENTIONS
+***************
+*** 1215,1218 ****
+--- 1218,1222 ----
+  	  	regs->regs_R[MD_REG_R0] = -(errno); /* negative of the error number is returned in r0 */
+  	}
++ 
+  	}
+        break;
+***************
+*** 2087,2090 ****
+--- 2091,2101 ----
+        break;
+  
++         case 0x99990 :  /* set timer microseconds per tick */
++                         timer_period = MD_CLOCK_CYCLES_PER_MICROSECOND * 
++                                 regs -> regs_R [ MD_REG_R0 ] ;
++                         timer_next_interrupt_at = sim_cycle + timer_period ;
++                         break ;
++ 
++ 
+  #if XXX
+  /*-------------------------------Is there a getpagesize in arm-linux??----------------------*/
